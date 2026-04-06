@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UNO ONLINE</title>
+<style>
+body{background:#222;color:white;text-align:center;font-family:sans-serif}
+.card{
+  width:80px;height:120px;margin:5px;
+  border-radius:15px;color:white;
+  font-size:18px;font-weight:bold;
+}
+.red{background:red}
+.yellow{background:gold}
+.green{background:green}
+.blue{background:blue}
+.wild{background:black}
+</style>
+</head>
+<body>
+
+<h1>UNO ONLINE</h1>
+
+<div id="login">
+<input id="name" placeholder="Nama">
+<button onclick="join()">Masuk</button>
+</div>
+
+<h2 id="turn"></h2>
+<h2 id="center"></h2>
+<button onclick="sayUNO()">UNO!</button>
+<div id="hand"></div>
+<button onclick="draw()">Ambil</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket=io();
+let myId;
+
+socket.on("connect",()=>{myId=socket.id});
+
+function join(){
+ socket.emit("join",document.getElementById("name").value);
+ document.getElementById("login").style.display="none";
+}
+
+socket.on("updateGame",data=>{
+ document.getElementById("turn").innerText=
+ data.turn===myId?"Giliran Kamu":"Tunggu";
+
+ document.getElementById("center").innerText=
+ "Kartu Tengah: "+data.currentCard.value;
+
+ let me=data.players.find(p=>p.id===myId);
+ if(!me) return;
+
+ let div=document.getElementById("hand");
+ div.innerHTML="";
+
+ me.hand.forEach(card=>{
+  let btn=document.createElement("button");
+  btn.className="card "+card.color;
+  btn.innerText=card.value;
+  btn.onclick=()=>{
+    if(card.color==="wild"){
+      let c=prompt("Pilih warna: red/yellow/green/blue");
+      socket.emit("playCard",{card,chosenColor:c});
+    }else{
+      socket.emit("playCard",{card});
+    }
+  };
+  div.appendChild(btn);
+ });
+});
+
+socket.on("gameOver",(winner)=>{
+ alert("Pemenang: "+winner);
+});
+
+function draw(){
+ socket.emit("drawCard");
+}
+
+function sayUNO(){
+ socket.emit("sayUNO");
+}
+</script>
+</body>
+  </html>
